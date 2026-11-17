@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ROY SPEED — Body-Tracked AR Endless Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage">
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="simbg"></canvas>
+  <div id="camTint"></div>
+  <canvas id="gl"></canvas>
+  <canvas id="poseOverlay"></canvas>
+  <div id="speedTint"></div>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+
+  <div id="popups"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-left">
+        <div class="panel score-panel">
+          <div class="p-label">SCORE</div>
+          <div id="score" class="score-num">0</div>
+          <div class="dist-line"><span id="dist">0</span> meters <span id="zoneTag" class="zone-tag">ZONE 1</span></div>
+        </div>
+        <div class="panel mission-panel" id="missionPanel"></div>
+      </div>
+      <div class="panel coin-panel">
+        <svg viewBox="0 0 24 24" class="coin-ico"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+        <b id="coins">0</b>
+        <div id="multTag" class="mult hidden">×2</div>
+      </div>
+      <div class="hud-right">
+        <div class="icon-btns">
+          <button id="btnCam" class="ibtn" title="Camera background" aria-label="Toggle camera background">
+            <svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+          <button id="btnSound" class="ibtn" title="Sound (M)" aria-label="Toggle sound">
+            <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg viewBox="0 0 24 24" class="ic-off"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button id="btnPause" class="ibtn" title="Pause (Esc)" aria-label="Pause game">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="panel best-panel">BEST <b id="bestHud">0</b></div>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div id="powerChips"></div>
+      <div class="panel mode-chip">
+        <span id="modeDot" class="dot"></span>
+        <span id="modeText">TOUCH MODE</span>
+      </div>
+      <button id="btnBoard" class="board-btn" title="Hoverboard (H / T-pose)">
+        <svg viewBox="0 0 24 24"><path d="M3 14c3-2 15-2 18 0-1 3-4 4-9 4s-8-1-9-4z" fill="currentColor"/><path d="M7 10l3-4M14 10l3-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>BOARD</span>
+      </button>
+    </div>
+    <div id="gestureFlash"></div>
+    <div id="bodyCoach">
+      <div class="bc" data-g="lane"><svg viewBox="0 0 24 24"><path d="M8 12H2m0 0l3-3M2 12l3 3M16 12h6m0 0l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>STEP = LANE</div>
+      <div class="bc" data-g="jump"><svg viewBox="0 0 24 24"><path d="M12 21V5m0 0l-5 5m5-5l5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>ARMS UP = JUMP</div>
+      <div class="bc" data-g="slide"><svg viewBox="0 0 24 24"><path d="M12 3v16m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>SQUAT = SLIDE</div>
+      <div class="bc" data-g="board"><svg viewBox="0 0 24 24"><path d="M3 9h18M12 9v9m0 0l-3 3m3-3l3 3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="5" r="2.4" fill="currentColor"/></svg>T-POSE = BOARD</div>
+    </div>
+  </div>
+
+  <div id="banner" class="hidden"><div id="bannerSub" class="banner-sub"></div><div id="bannerMain" class="banner-main"></div></div>
+  <div id="countdown" class="hidden"><div id="cdNum">3</div></div>
+  <div id="toasts"></div>
+
+  <!-- DASHBOARD -->
+  <div id="screen-start" class="screen">
+    <div class="dash">
+      <aside class="dash-side">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 5l7 7-7 7M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="brand-text">
+            <h1 class="logo">ROY<span>SPEED</span></h1>
+            <div class="brand-sub">BODY-TRACKED AR RUNNER</div>
+          </div>
+        </div>
+        <nav class="dash-nav" aria-label="Dashboard sections">
+          <button class="nav-item active" data-view="play">
+            <svg viewBox="0 0 24 24"><path d="M6 4.5v15l13-7.5z" fill="currentColor"/></svg>
+            <span>Play</span>
+          </button>
+          <button class="nav-item" data-view="runners">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+            <span>Runners</span>
+          </button>
+          <button class="nav-item" data-view="missions">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+            <span>Missions</span>
+          </button>
+          <button class="nav-item" data-view="guide">
+            <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+            <span>Guide</span>
+          </button>
+        </nav>
+        <div class="side-foot">
+          <div class="ver-tag">ROY SPEED · v1.0</div>
+        </div>
+      </aside>
+
+      <div class="dash-main">
+        <header class="dash-head">
+          <div class="head-titles">
+            <h2 id="viewTitle">Ready to run</h2>
+            <p id="viewSub">Pick a control mode and start your run.</p>
+          </div>
+          <div class="head-tools">
+            <span class="pill"><i class="dot"></i><span id="diffPill">PILOT</span></span>
+            <button id="btnSoundMenu" class="ibtn menu-sound" title="Sound (M)" aria-label="Toggle sound">
+              <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <svg viewBox="0 0 24 24" class="ic-off"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- PLAY -->
+        <section id="view-play" class="view active">
+          <div class="stat-grid">
+            <article class="stat-card">
+              <div class="stat-ico gold"><svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4M12 14v3M8 20h8M9 17h6v3H9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="stat-body">
+                <span class="stat-label">BEST SCORE</span>
+                <b id="bestStart">0</b>
+                <span class="stat-sub" id="bestDiffSub">PILOT difficulty</span>
+              </div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-ico coin"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/></svg></div>
+              <div class="stat-body">
+                <span class="stat-label">COIN BANK</span>
+                <b id="bankStart">0</b>
+                <span class="stat-sub">Spend on runners</span>
+              </div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-ico cyan"><svg viewBox="0 0 24 24"><path d="M4 19c4-1 5-4 5-7a3 3 0 0 1 6 0c0 3 1 6 5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="5" r="1.8" fill="currentColor"/><path d="M3 21h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+              <div class="stat-body">
+                <span class="stat-label">BEST DISTANCE</span>
+                <b id="bestDistStart">0m</b>
+                <span class="stat-sub">Farthest run</span>
+              </div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-ico green"><svg viewBox="0 0 24 24"><path d="M13 2L5 13h5l-1 9 8-11h-5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+              <div class="stat-body">
+                <span class="stat-label">TOTAL RUNS</span>
+                <b id="runsStart">0</b>
+                <span class="stat-sub">All-time</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="settings-card">
+            <div class="diff-block">
+              <span class="diff-label">DIFFICULTY</span>
+              <div class="seg" id="diffSeg">
+                <button data-diff="recruit">RECRUIT</button>
+                <button data-diff="pilot" class="on">PILOT</button>
+                <button data-diff="ace">ACE</button>
+              </div>
+            </div>
+            <label class="cam-check"><input type="checkbox" id="camPref" checked><span class="box"></span>Camera background</label>
+          </div>
+
+          <div class="mode-cards">
+            <button id="btnBody" class="mode-card body-card">
+              <div class="mc-top">
+                <div class="mc-ico"><svg viewBox="0 0 64 64"><circle cx="32" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M32 20v16M32 24l-14 6M32 24l14 6M32 36l-9 18M32 36l9 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
+                <div class="mc-head">
+                  <div class="mc-title">Body Tracking AR</div>
+                  <div class="mc-sub">Your body is the controller</div>
+                </div>
+                <svg class="mc-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <p class="mc-desc">AI pose detection reads your moves — <b>step sideways</b> to switch lanes, <b>raise arms</b> to jump, <b>squat</b> to slide, and hit a <b>T-pose</b> for the hoverboard.</p>
+              <div class="mc-tags"><span>CAMERA</span><span>AI POSE</span><span>FULL BODY</span></div>
+              <div class="mc-note">Camera required · stand 2–3 m back for best tracking</div>
+            </button>
+            <button id="btnTouch" class="mode-card touch-card">
+              <div class="mc-top">
+                <div class="mc-ico"><svg viewBox="0 0 64 64"><path d="M26 34V16a5 5 0 0 1 10 0v14l8 3c3 1 4 4 3 7l-4 12c-1 3-4 5-7 5h-8c-3 0-6-2-7-5l-6-14c-1-3 1-6 4-6z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M12 20l-6-6M52 20l6-6M32 8V2" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
+                <div class="mc-head">
+                  <div class="mc-title">Touch &amp; Keyboard</div>
+                  <div class="mc-sub">Works on any device</div>
+                </div>
+                <svg class="mc-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <p class="mc-desc"><b>Swipe</b> or use arrow keys — left/right for lanes, up to jump, down to slide. Press <b>H</b> or the BOARD button for the hoverboard.</p>
+              <div class="mc-tags"><span>TOUCH</span><span>KEYBOARD</span><span>INSTANT</span></div>
+              <div class="mc-note">No camera needed · instant play</div>
+            </button>
+          </div>
+        </section>
+
+        <!-- RUNNERS -->
+        <section id="view-runners" class="view">
+          <div class="view-note">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor"/></svg>
+            Coin bank <b id="bankRunners">0</b> — unlock runners with the coins you collect in runs.
+          </div>
+          <div class="char-row" id="charRow"></div>
+        </section>
+
+        <!-- MISSIONS -->
+        <section id="view-missions" class="view">
+          <div class="view-note">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+            Active missions — rewards: coins + score · progress is saved between runs.
+          </div>
+          <div id="missionStart" class="mission-start"></div>
+        </section>
+
+        <!-- GUIDE -->
+        <section id="view-guide" class="view">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <h3>Body gestures</h3>
+              <div class="gesture-grid">
+                <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 9v8M16 17l-5 8M16 17l5 8M10 13h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 26l3-2M29 26l-3-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>STEP SIDE</b><span>switch lane</span></div>
+                <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13v7M16 20l-4 7M16 20l4 7M16 14l-6-7M16 14l6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>ARMS UP</b><span>jump</span></div>
+                <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 15v4M16 19l-7 3M16 19l7 3M16 16l-6 2M16 16l6 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>SQUAT</b><span>slide</span></div>
+                <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10v9M16 19l-4 8M16 19l4 8M4 13h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>T-POSE</b><span>hoverboard</span></div>
+              </div>
+            </div>
+            <div class="guide-card">
+              <h3>Touch &amp; keys</h3>
+              <div class="key-list">
+                <div class="key-row"><span class="keys"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></span>Switch lanes</div>
+                <div class="key-row"><span class="keys"><kbd>↑</kbd> / <kbd>W</kbd><kbd>Space</kbd></span>Jump</div>
+                <div class="key-row"><span class="keys"><kbd>↓</kbd> / <kbd>S</kbd></span>Slide</div>
+                <div class="key-row"><span class="keys"><kbd>H</kbd></span>Hoverboard</div>
+                <div class="key-row"><span class="keys"><kbd>Esc</kbd> / <kbd>P</kbd></span>Pause</div>
+                <div class="key-row"><span class="keys"><kbd>M</kbd></span>Mute sound</div>
+              </div>
+              <p class="guide-tip">On touch screens: swipe left / right / up / down anywhere on the track.</p>
+            </div>
+            <div class="guide-card wide">
+              <h3>How a run works</h3>
+              <div class="howto">
+                <div class="step"><i>1</i> Switch lanes to dodge trains</div>
+                <div class="step"><i>2</i> Jump low barriers, slide under overhead gates</div>
+                <div class="step"><i>3</i> Grab coins &amp; power-ups to push your score</div>
+              </div>
+              <div class="power-legend">
+                <span class="pl magnet"><svg viewBox="0 0 24 24"><path d="M6 4v8a6 6 0 0 0 12 0V4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 4h4v5H6zM14 4h4v5h-4z" fill="currentColor"/></svg>Magnet — pulls coins in</span>
+                <span class="pl shield"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Shield — saves you once</span>
+                <span class="pl x2"><svg viewBox="0 0 24 24"><path d="M5 8l6 8M11 8l-6 8M14 9h5l-5 7h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>×2 — double score</span>
+                <span class="pl jet"><svg viewBox="0 0 24 24"><path d="M12 3c3 2.5 4 6 4 9l-4 4-4-4c0-3 1-6.5 4-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 16l-2 5M15 16l2 5M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Jetpack — fly over everything</span>
+              </div>
+            </div>
+          </div>
+          <div class="start-foot">Speed ramps up over time · a crash ends the run · board/shield saves you once · headphones recommended</div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALIBRATION -->
+  <div id="screen-calib" class="screen hidden">
+    <div class="calib-box">
+      <div class="calib-title">CALIBRATION</div>
+      <div class="calib-desc">Stand upright so your <b>full body</b> is visible to the camera</div>
+      <div class="calib-zones"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
+      <div class="calib-gestures">
+        <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 9v8M16 17l-5 8M16 17l5 8M10 13h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 26l3-2M29 26l-3-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>STEP SIDE</b><span>switch lane</span></div>
+        <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13v7M16 20l-4 7M16 20l4 7M16 14l-6-7M16 14l6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>ARMS UP</b><span>jump</span></div>
+        <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 15v4M16 19l-7 3M16 19l7 3M16 16l-6 2M16 16l6 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>SQUAT</b><span>slide</span></div>
+        <div class="cg"><svg viewBox="0 0 32 32"><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10v9M16 19l-4 8M16 19l4 8M4 13h24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b>T-POSE</b><span>hoverboard</span></div>
+      </div>
+      <div class="calib-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" class="ring-bg"/><circle cx="40" cy="40" r="34" class="ring-fg" id="calibRing"/></svg><b id="calibPct">0%</b></div>
+      <div id="calibHint" class="calib-hint">Stand still — detecting your body…</div>
+      <button id="btnSkipCalib" class="cta ghost">Skip &amp; play in touch mode</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="screen-loading" class="screen hidden">
+    <div class="load-box"><div class="load-ring"></div><div id="loadText">Starting camera…</div><div class="load-sub">Tap Allow when prompted for permission</div></div>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="modal">
+      <h2 class="modal-title">PAUSED</h2>
+      <div class="pause-stats"><div><span>SCORE</span><b id="pauseScore">0</b></div><div><span>COINS</span><b id="pauseCoins">0</b></div></div>
+      <button id="btnResume" class="cta">RESUME RUN</button>
+      <button id="btnRestartP" class="cta ghost">NEW RUN</button>
+      <button id="btnQuitP" class="cta ghost">BACK TO MENU</button>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="screen-over" class="screen hidden">
+    <div class="modal over-modal">
+      <div class="over-tag">RUN OVER</div>
+      <h2 class="modal-title red">CRASHED!</h2>
+      <div id="newBest" class="new-best hidden">★ NEW BEST SCORE!</div>
+      <div class="final-score"><span>FINAL SCORE</span><b id="finalScore">0</b></div>
+      <div class="over-stats">
+        <div><span>DISTANCE</span><b id="ovDist">0m</b></div>
+        <div><span>COINS</span><b id="ovCoins">0</b></div>
+        <div><span>JUMPS</span><b id="ovJumps">0</b></div>
+        <div><span>BEST</span><b id="ovBest">0</b></div>
+      </div>
+      <div id="ovMissions" class="mission-line"></div>
+      <div id="ovBank" class="mission-line bank"></div>
+      <button id="btnRestartO" class="cta">RUN AGAIN</button>
+      <button id="btnQuitO" class="cta ghost">BACK TO MENU</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

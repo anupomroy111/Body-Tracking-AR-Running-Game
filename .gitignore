@@ -1,0 +1,17 @@
+# Build output (Qoder Sites deployment mirror)
+dist/
+
+# Platform descriptor (tool-owned)
+*.qoder.site
+
+# Dependencies & environment
+node_modules/
+.env
+.env.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
