@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/banner.svg" alt="ROY SPEED — Body-Tracked AR Endless Runner" width="100%" />
+</div>
+
 # ROY SPEED — Body-Tracked AR Endless Runner
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Play_Now-22d3ee?style=for-the-badge)](https://anupomroy111.github.io/Body-Tracking-AR-Running-Game/)
